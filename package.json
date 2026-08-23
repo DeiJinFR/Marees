@@ -1,0 +1,6 @@
+{
+  "name": "horloge-marees",
+  "version": "1.0.0",
+  "description": "Horloge interactive des marées françaises",
+  "main": "api/tides.js"
+}
