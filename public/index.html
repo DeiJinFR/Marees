@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Horloge des marées</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy-deep:#0a1626;
+    --navy:#132845;
+    --navy-light:#1e3a63;
+    --cream:#f3ecdf;
+    --cream-dim:#cfc7b4;
+    --oak-1:#8a5a2b;
+    --oak-2:#c78c4f;
+    --oak-3:#6f4520;
+    --teal:#4fb8a6;
+    --coral:#e8a06b;
+    --ok:#6fbf8b;
+    --err:#e07a6b;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0;
+    min-height:100%;
+    background:
+      radial-gradient(ellipse at 50% -10%, #16324f 0%, transparent 55%),
+      linear-gradient(180deg, #08131f 0%, #0a1626 40%, #071019 100%);
+    color:var(--cream);
+    font-family:'Space Grotesk', sans-serif;
+    -webkit-tap-highlight-color:transparent;
+  }
+  body{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:28px 16px 48px;
+  }
+
+  .brand{
+    text-align:center;
+    margin-bottom:22px;
+  }
+  .brand .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:.28em;
+    text-transform:uppercase;
+    color:var(--teal);
+    margin:0 0 6px;
+  }
+  .brand h1{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-style:italic;
+    font-size:clamp(24px,6vw,32px);
+    margin:0;
+    color:var(--cream);
+    letter-spacing:.01em;
+  }
+
+  .search{
+    width:100%;
+    max-width:420px;
+    display:flex;
+    gap:8px;
+    margin-bottom:26px;
+  }
+  .search input{
+    flex:1;
+    min-width:0;
+    padding:13px 16px;
+    border-radius:10px;
+    border:1px solid rgba(243,236,223,0.18);
+    background:rgba(255,255,255,0.05);
+    color:var(--cream);
+    font-family:'Space Grotesk', sans-serif;
+    font-size:15px;
+    outline:none;
+  }
+  .search input::placeholder{color:var(--cream-dim);}
+  .search input:focus{
+    border-color:var(--teal);
+    background:rgba(79,184,166,0.08);
+  }
+  .search button{
+    flex-shrink:0;
+    padding:13px 18px;
+    border-radius:10px;
+    border:none;
+    background:linear-gradient(180deg, var(--oak-2), var(--oak-1));
+    color:#241205;
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:600;
+    font-size:14px;
+    letter-spacing:.02em;
+    cursor:pointer;
+    transition:transform .15s ease, filter .15s ease;
+  }
+  .search button:active{transform:scale(.96);}
+  .search button:disabled{filter:grayscale(.5) opacity(.6);cursor:default;}
+
+  .status{
+    min-height:20px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    color:var(--cream-dim);
+    text-align:center;
+    margin-bottom:6px;
+    max-width:340px;
+  }
+  .status.err{color:var(--err);}
+  .status.ok{color:var(--ok);}
+
+  .clock-shell{
+    width:min(84vw, 340px);
+    aspect-ratio:1;
+    border-radius:50%;
+    padding:16px;
+    margin:18px 0 22px;
+    background:
+      conic-gradient(from -20deg,
+        #6f4520 0deg, #b5793f 40deg, #8a5a2b 80deg, #d9a05f 120deg,
+        #6f4520 160deg, #b5793f 200deg, #8a5a2b 240deg, #d9a05f 280deg,
+        #6f4520 320deg, #6f4520 360deg);
+    box-shadow:
+      0 18px 40px rgba(0,0,0,.55),
+      inset 0 2px 6px rgba(255,255,255,.25),
+      inset 0 -4px 10px rgba(0,0,0,.5);
+    position:relative;
+  }
+  .clock-face{
+    width:100%;
+    height:100%;
+    border-radius:50%;
+    background:radial-gradient(circle at 32% 28%, var(--navy-light) 0%, var(--navy) 55%, var(--navy-deep) 100%);
+    box-shadow:
+      inset 0 0 3px rgba(255,255,255,.2),
+      inset 0 0 42px rgba(0,0,0,.65);
+    position:relative;
+  }
+  .clock-face svg{
+    width:100%;
+    height:100%;
+    display:block;
+  }
+  .tick-num{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:9px;
+    fill:var(--cream-dim);
+  }
+  .tick-line{stroke:var(--cream-dim);stroke-width:1;opacity:.55;}
+  .arc-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:6px;
+    letter-spacing:.18em;
+    fill:var(--cream-dim);
+    opacity:.85;
+  }
+  .cardinal-label{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700;
+    font-size:13px;
+    letter-spacing:.14em;
+    fill:var(--cream);
+  }
+  .center-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:8px;
+    letter-spacing:.14em;
+    fill:var(--cream-dim);
+    text-anchor:middle;
+  }
+  .center-city{
+    font-family:'Fraunces', serif;
+    font-style:italic;
+    font-weight:600;
+    font-size:11px;
+    fill:var(--teal);
+    text-anchor:middle;
+  }
+  .needle{
+    transform-origin:100px 100px;
+    transition:transform 1.2s cubic-bezier(.4,0,.2,1);
+  }
+  .needle-body{fill:var(--cream);}
+  .needle-tip{fill:var(--coral);}
+  .hub{fill:var(--cream); stroke:var(--oak-2); stroke-width:2;}
+
+  .panel{
+    width:100%;
+    max-width:420px;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+  .card{
+    background:rgba(255,255,255,0.04);
+    border:1px solid rgba(243,236,223,0.1);
+    border-radius:12px;
+    padding:14px 14px 12px;
+  }
+  .card .lbl{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--cream-dim);
+    margin:0 0 8px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+  .dot.up{background:var(--coral);}
+  .dot.down{background:var(--teal);}
+  .card .time{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:24px;
+    margin:0;
+    color:var(--cream);
+  }
+  .card .sub{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:12px;
+    color:var(--cream-dim);
+    margin-top:4px;
+  }
+  .card .sub b{color:var(--teal); font-weight:600;}
+  .card.empty .time{color:var(--cream-dim); font-size:15px; font-style:italic;}
+
+  .meta{
+    width:100%;
+    max-width:420px;
+    text-align:center;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--cream-dim);
+    margin-top:16px;
+    line-height:1.6;
+  }
+  .meta .distance{color:var(--coral);}
+
+  @media (max-width:360px){
+    .panel{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+  <div class="brand">
+    <p class="eyebrow">Ocean Clock &middot; France</p>
+    <h1>Horloge des marées</h1>
+  </div>
+
+  <div class="search">
+    <input id="cityInput" type="text" placeholder="Nom d'une ville (ex: Brest, Paris, Lyon...)" autocomplete="off">
+    <button id="calcBtn">Calculer</button>
+  </div>
+  <div id="status" class="status"></div>
+
+  <div class="clock-shell">
+    <div class="clock-face">
+      <svg viewBox="0 0 200 200">
+        <circle cx="100" cy="100" r="94" fill="none" stroke="rgba(243,236,223,0.15)" stroke-width="1"/>
+        <g id="ticks"></g>
+        <path id="arcLeftPath" d="M 44,140 A 74,74 0 0 1 44,60" fill="none"/>
+        <path id="arcRightPath" d="M 156,60 A 74,74 0 0 1 156,140" fill="none"/>
+        <text class="arc-label"><textPath href="#arcLeftPath" startOffset="50%" text-anchor="middle">TEMPS RESTANT AVANT LA PLEINE MER</textPath></text>
+        <text class="arc-label"><textPath href="#arcRightPath" startOffset="50%" text-anchor="middle">TEMPS RESTANT AVANT LA BASSE MER</textPath></text>
+        <text x="100" y="20" text-anchor="middle" class="cardinal-label">MARÉE HAUTE</text>
+        <text x="100" y="187" text-anchor="middle" class="cardinal-label">MARÉE BASSE</text>
+        <text x="100" y="94" class="center-label">OCEAN CLOCK</text>
+        <text id="centerCity" x="100" y="112" class="center-city"></text>
+        <g id="needle" class="needle">
+          <polygon class="needle-body" points="100,100 96,100 91,30 100,20 109,30 104,100"/>
+          <polygon class="needle-tip" points="100,20 96,30 104,30"/>
+          <circle class="hub" cx="100" cy="100" r="6"/>
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="card empty" id="cardLastHigh">
+      <p class="lbl"><span class="dot up"></span>Dernière pleine mer</p>
+      <p class="time">—</p>
+      <p class="sub">&nbsp;</p>
+    </div>
+    <div class="card empty" id="cardNextHigh">
+      <p class="lbl"><span class="dot up"></span>Prochaine pleine mer</p>
+      <p class="time">—</p>
+      <p class="sub">&nbsp;</p>
+    </div>
+    <div class="card empty" id="cardLastLow">
+      <p class="lbl"><span class="dot down"></span>Dernière marée basse</p>
+      <p class="time">—</p>
+      <p class="sub">&nbsp;</p>
+    </div>
+    <div class="card empty" id="cardNextLow">
+      <p class="lbl"><span class="dot down"></span>Prochaine marée basse</p>
+      <p class="time">—</p>
+      <p class="sub">&nbsp;</p>
+    </div>
+  </div>
+
+  <div class="meta" id="metaInfo"></div>
+
+<script>
+const API_ENDPOINT = '/api/tides';
+
+const els = {
+  input: document.getElementById('cityInput'),
+  btn: document.getElementById('calcBtn'),
+  status: document.getElementById('status'),
+  needle: document.getElementById('needle'),
+  centerCity: document.getElementById('centerCity'),
+  meta: document.getElementById('metaInfo'),
+  cards: {
+    lastHigh: document.getElementById('cardLastHigh'),
+    nextHigh: document.getElementById('cardNextHigh'),
+    lastLow: document.getElementById('cardLastLow'),
+    nextLow: document.getElementById('cardNextLow'),
+  }
+};
+
+let currentData = null;
+let refreshTimer = null;
+
+function setStatus(msg, kind){
+  els.status.textContent = msg || '';
+  els.status.className = 'status' + (kind ? ' '+kind : '');
+}
+
+function fmtDelta(ms){
+  const mins = Math.round(Math.abs(ms)/60000);
+  const h = Math.floor(mins/60), m = mins%60;
+  const sign = ms >= 0 ? 'dans' : 'il y a';
+  if(h === 0) return `${sign} ${m}min`;
+  return `${sign} ${h}h${m.toString().padStart(2,'0')}`;
+}
+
+function parseEventDate(ev){
+  const [y,mo,d] = ev.date.split('-').map(Number);
+  const [hh,mm] = ev.heure.split(':').map(Number);
+  return new Date(y, mo-1, d, hh, mm, 0);
+}
+
+function updateCard(cardEl, ev, extra){
+  const timeEl = cardEl.querySelector('.time');
+  const subEl = cardEl.querySelector('.sub');
+  if(!ev){
+    cardEl.classList.add('empty');
+    timeEl.textContent = '—';
+    subEl.innerHTML = '&nbsp;';
+    return;
+  }
+  cardEl.classList.remove('empty');
+  timeEl.textContent = ev.heure;
+  let sub = extra ? extra : '';
+  if(ev.coefficient !== null && ev.coefficient !== undefined){
+    sub += (sub ? ' &middot; ' : '') + `coef <b>${ev.coefficient}</b>`;
+  }
+  if(ev.hauteur_m !== null && ev.hauteur_m !== undefined){
+    sub += (sub ? ' &middot; ' : '') + `${ev.hauteur_m} m`;
+  }
+  subEl.innerHTML = sub || '&nbsp;';
+}
+
+function render(){
+  if(!currentData) return;
+  const now = new Date();
+  const events = currentData.evenements
+    .map(ev => ({...ev, dt: parseEventDate(ev)}))
+    .sort((a,b) => a.dt - b.dt);
+
+  const past = events.filter(e => e.dt <= now);
+  const future = events.filter(e => e.dt > now);
+
+  const lastHigh = [...past].reverse().find(e => e.type === 'haute');
+  const nextHigh = future.find(e => e.type === 'haute');
+  const lastLow = [...past].reverse().find(e => e.type === 'basse');
+  const nextLow = future.find(e => e.type === 'basse');
+
+  updateCard(els.cards.lastHigh, lastHigh, lastHigh ? fmtDelta(lastHigh.dt-now) : '');
+  updateCard(els.cards.nextHigh, nextHigh, nextHigh ? fmtDelta(nextHigh.dt-now) : '');
+  updateCard(els.cards.lastLow, lastLow, lastLow ? fmtDelta(lastLow.dt-now) : '');
+  updateCard(els.cards.nextLow, nextLow, nextLow ? fmtDelta(nextLow.dt-now) : '');
+
+  // Needle: 0° = high tide (top), 180° = low tide (bottom)
+  let angle = 0;
+  if(past.length > 0 && future.length > 0){
+    const lastEvent = past[past.length-1];
+    const nextEvent = future[0];
+    const span = nextEvent.dt - lastEvent.dt;
+    const progress = span > 0 ? (now - lastEvent.dt) / span : 0;
+    if(lastEvent.type === 'haute'){
+      angle = 180 * progress;
+    } else {
+      angle = 180 + 180 * progress;
+    }
+  }
+  els.needle.style.transform = `rotate(${angle}deg)`;
+
+  els.centerCity.textContent = (currentData.ville || '').toUpperCase();
+
+  let metaTxt = `Marées de <b>${currentData.ville}</b>`;
+  if(currentData.distance && currentData.distance > 0){
+    metaTxt += ` &middot; <span class="distance">${currentData.distance} km</span>`;
+  }
+  els.meta.innerHTML = metaTxt;
+}
+
+async function searchTides(){
+  const city = els.input.value.trim();
+  if(!city){
+    setStatus('Entrez une ville', 'err');
+    return;
+  }
+
+  els.btn.disabled = true;
+  setStatus('Recherche...', '');
+
+  try {
+    const response = await fetch(API_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ city })
+    });
+
+    if (!response.ok) {
+      const errData = await response.json();
+      throw new Error(errData.erreur || `Erreur HTTP ${response.status}`);
+    }
+
+    currentData = await response.json();
+    setStatus('✓ Chargé', 'ok');
+    render();
+    
+    if(refreshTimer) clearInterval(refreshTimer);
+    refreshTimer = setInterval(render, 60000);
+  } catch(err){
+    setStatus('Erreur: ' + err.message, 'err');
+  } finally {
+    els.btn.disabled = false;
+  }
+}
+
+// ===== Draw ticks =====
+(function drawTicks(){
+  const g = document.getElementById('ticks');
+  const cx = 100, cy = 100, rOuter = 88, rInner = 80, rNum = 71;
+  const rightNums = {30:'5', 60:'4', 120:'2', 150:'1'};
+  const leftNums  = {330:'1', 300:'2', 240:'4', 210:'5'};
+  const allNumbered = Object.assign({}, rightNums, leftNums);
+
+  for(let a=0; a<360; a+=30){
+    const rad = (a-90) * Math.PI/180;
+    const x1 = cx + rInner*Math.cos(rad), y1 = cy + rInner*Math.sin(rad);
+    const x2 = cx + rOuter*Math.cos(rad), y2 = cy + rOuter*Math.sin(rad);
+    if(a===0 || a===180) continue;
+    
+    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1',x1); line.setAttribute('y1',y1);
+    line.setAttribute('x2',x2); line.setAttribute('y2',y2);
+    line.setAttribute('class','tick-line');
+    g.appendChild(line);
+
+    if(allNumbered[a]){
+      const nx = cx + rNum*Math.cos(rad), ny = cy + rNum*Math.sin(rad);
+      const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+      t.setAttribute('x',nx); t.setAttribute('y',ny+3);
+      t.setAttribute('text-anchor','middle');
+      t.setAttribute('class','tick-num');
+      t.textContent = allNumbered[a];
+      g.appendChild(t);
+    }
+  }
+})();
+
+// ===== Event listeners =====
+els.btn.addEventListener('click', searchTides);
+els.input.addEventListener('keypress', (e) => {
+  if(e.key === 'Enter') searchTides();
+});
+
+setStatus('Prêt', 'ok');
+</script>
+</body>
+</html>
